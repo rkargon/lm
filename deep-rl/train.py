@@ -9,6 +9,7 @@ import tensorflow as tf
 FLAGS = tf.app.flags.FLAGS
 tf.flags.DEFINE_integer('vocabulary_size', 10000, "Size of the language vocabulary.")
 tf.flags.DEFINE_integer('embedding_size', 100, "Size of intermediate embeddings.")
+tf.flags.DEFINE_integer('hidden_size', 1000, "Size of state encoding network hidden layer.")
 
 
 def main(_):
@@ -22,7 +23,7 @@ def main(_):
     with tf.Session() as sess:
         # Instantiate Network
         print 'Building Network!'
-        rlangmod = RLangmod(FLAGS.vocabulary_size)
+        rlangmod = RLangmod(FLAGS.vocabulary_size, FLAGS.embedding_size, FLAGS.hidden_size)
 
         # Create a saver.
         saver = tf.train.Saver(tf.all_variables())
