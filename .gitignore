@@ -90,3 +90,9 @@ ENV/
 
 # IDEA
 .idea/
+
+# OS X
+.DS_Store
+
+# Data
+data/
