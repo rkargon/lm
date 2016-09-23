@@ -35,6 +35,9 @@ class LM:
             # Output is a single word (next word after window), referred to by idx in vocabulary
             self.outputs[lang_id] = tf.placeholder(tf.int64, [None])              # bsz
 
+        # Dropout Placeholder
+        self.dropout_prob = tf.placeholder(tf.float32)
+
         # Instantiate all Model Weights
         self.instantiate_weights()
 
@@ -92,6 +95,9 @@ class LM:
             embedding = self.embeddings[lang_id]
             embeddings = tf.nn.embedding_lookup(embedding, window_input)     # bsz x window x embed
 
+            # Dropout the embeddings during training
+            embeddings = tf.nn.dropout(embeddings, self.dropout_prob)
+
             # Flatten Embeddings into a Single Vector
             inter_sz = self.window * self.embedding_size
             flat = tf.reshape(embeddings, [-1, inter_sz])                    # bsz x (wdw x embed)
@@ -102,6 +108,9 @@ class LM:
 
             # Pass Encodings Through First Shared ReLu Layer
             shared = tf.nn.relu(tf.matmul(encoding, self.hidden_relu) + self.hidden_relu_bias)
+
+            # Dropout Shared Layer
+            shared = tf.nn.dropout(shared, self.dropout_prob)
 
             # Pass Encodings Through Second Shared Linear Layer
             inter_embeddings = tf.matmul(shared, self.hidden_linear) + self.hidden_linear_bias
@@ -131,6 +140,9 @@ class LM:
                 loss = tf.reduce_mean(
                     tf.nn.sparse_softmax_cross_entropy_with_logits(logits, self.outputs[trg],
                                                                    "%s_%s_loss" % (src, trg)))
+
+                # Add regularization loss
+                loss += tf.nn.l2_loss(self.hidden_relu) + tf.nn.l2_loss(self.hidden_linear)
                 losses[src][trg] = loss
         return losses
 

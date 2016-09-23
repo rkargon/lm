@@ -32,6 +32,7 @@ tf.app.flags.DEFINE_integer('hidden_size', 256, 'Size of the hidden layer.')
 tf.app.flags.DEFINE_float('learning_rate', 0.001, 'Learning rate for Adam Optimizer.')
 tf.app.flags.DEFINE_integer('batch_size', 100, 'Size of the batch size.')
 tf.app.flags.DEFINE_integer('eval_every', 200, 'Print statistics every eval_every batches.')
+tf.app.flags.DEFINE_float('dropout_prob', 0.5, 'Dropout keep probability.')
 
 LANGUAGES = ['en', 'es', 'fr']
 SRC_FILES = {'en': 'data/raw/english.en', 'es': 'data/raw/spanish.es', 'fr': 'data/raw/french.fr'}
@@ -74,15 +75,18 @@ def main(_):
                 curr_french_loss, _ = sess.run(
                     [langmod.loss_vals['fr']['fr'], langmod.train_ops['fr']['fr']],
                     feed_dict={langmod.inputs['fr']: fr_x[start:end],
-                               langmod.outputs['fr']: fr_y[start:end]})
+                               langmod.outputs['fr']: fr_y[start:end],
+                               langmod.dropout_prob: FLAGS.dropout_prob})
                 curr_spanish_loss, _ = sess.run(
                     [langmod.loss_vals['es']['es'], langmod.train_ops['es']['es']],
                     feed_dict={langmod.inputs['es']: es_x[start:end],
-                               langmod.outputs['es']: es_y[start:end]})
+                               langmod.outputs['es']: es_y[start:end],
+                               langmod.dropout_prob: FLAGS.dropout_prob})
                 curr_loss, _ = sess.run(
                     [langmod.loss_vals['en']['en'], langmod.train_ops['en']['en']],
                     feed_dict={langmod.inputs['en']: en_x[start:end],
-                               langmod.outputs['en']: en_y[start:end]})
+                               langmod.outputs['en']: en_y[start:end],
+                               langmod.dropout_prob: FLAGS.dropout_prob})
                 loss += curr_loss
                 fr_loss += curr_french_loss
                 es_loss += curr_spanish_loss
@@ -108,7 +112,8 @@ def main(_):
             for start, end in zip(range(0, len(test_x), bsz), range(bsz, len(test_x), bsz)):
                 test_loss += sess.run([langmod.loss_vals['en']['en']],
                                       feed_dict={langmod.inputs['en']: test_x[start:end],
-                                                 langmod.outputs['en']: test_y[start:end]})[0]
+                                                 langmod.outputs['en']: test_y[start:end],
+                                                 langmod.dropout_prob: 1.0})[0]
                 test_counter += 1
             test_loss = np.exp(test_loss / test_counter)
             test_losses.append(test_loss)
@@ -118,10 +123,14 @@ def main(_):
             checkpoint_path = os.path.join(FLAGS.log_dir, 'model.ckpt')
             saver.save(sess, checkpoint_path, counter)
 
-        print 'English', en_l
-        print 'French', fr_l
-        print 'Spanish', es_l
-        print 'Test', test_losses
+        print 'English:'
+        print "\n".join(map(str, en_l))
+        print 'French:'
+        print "\n".join(map(str, fr_l))
+        print 'Spanish:'
+        print "\n".join(map(str, es_l))
+        print 'Test:'
+        print test_losses
 
 if __name__ == "__main__":
     tf.app.run()
