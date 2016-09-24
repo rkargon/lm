@@ -140,9 +140,6 @@ class LM:
                 loss = tf.reduce_mean(
                     tf.nn.sparse_softmax_cross_entropy_with_logits(logits, self.outputs[trg],
                                                                    "%s_%s_loss" % (src, trg)))
-
-                # Add regularization loss
-                loss += tf.nn.l2_loss(self.hidden_relu) + tf.nn.l2_loss(self.hidden_linear)
                 losses[src][trg] = loss
         return losses
 

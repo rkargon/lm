@@ -27,10 +27,10 @@ tf.app.flags.DEFINE_integer('test_size', 100000, 'Number of test examples.')
 
 tf.app.flags.DEFINE_integer('window_size', 5, 'Size of the fixed context window.')
 tf.app.flags.DEFINE_integer('embedding_size', 50, 'Size of hidden embedding representations.')
-tf.app.flags.DEFINE_integer('hidden_size', 256, 'Size of the hidden layer.')
+tf.app.flags.DEFINE_integer('hidden_size', 512, 'Size of the hidden layer.')
 
-tf.app.flags.DEFINE_float('learning_rate', 0.001, 'Learning rate for Adam Optimizer.')
-tf.app.flags.DEFINE_integer('batch_size', 100, 'Size of the batch size.')
+tf.app.flags.DEFINE_float('learning_rate', 0.0001, 'Learning rate for Adam Optimizer.')
+tf.app.flags.DEFINE_integer('batch_size', 200, 'Size of the batch size.')
 tf.app.flags.DEFINE_integer('eval_every', 200, 'Print statistics every eval_every batches.')
 tf.app.flags.DEFINE_float('dropout_prob', 0.5, 'Dropout keep probability.')
 
@@ -54,10 +54,9 @@ def main(_):
         # Initialize all variables
         print "Initializing Variables"
         sess.run(tf.initialize_all_variables())
-        bsz, counter = FLAGS.batch_size, 0
+        bsz = FLAGS.batch_size
 
         print "Starting Training"
-
 
         en_x, en_y = load_train_data('en')
         fr_x, fr_y = load_train_data('fr')
@@ -67,9 +66,9 @@ def main(_):
         test_losses = []
 
         # Run 1 Epoch of French/English/Spanish With Interleaving Batches
-        print 'Starting Training!'
-        for _ in range(10):
-            start_time, loss, fr_loss, es_loss = time.time(), 0.0, 0.0, 0.0
+        print 'Starting Training For Real!'
+        for _ in range(50):
+            start_time, loss, fr_loss, es_loss, counter = time.time(), 0.0, 0.0, 0.0, 0
             for start, end in zip(range(0, len(en_x), bsz), range(bsz, len(en_x), bsz)):
                 counter += 1
                 curr_french_loss, _ = sess.run(
@@ -93,9 +92,9 @@ def main(_):
 
                 # Print Evaluation Statistics
                 if counter % FLAGS.eval_every == 0:
-                    en_l.append(np.exp(loss) / FLAGS.eval_every)
-                    fr_l.append(np.exp(fr_loss) / FLAGS.eval_every)
-                    es_l.append(np.exp(es_loss) / FLAGS.eval_every)
+                    en_l.append(np.exp(loss / (FLAGS.eval_every)))
+                    fr_l.append(np.exp(fr_loss / (FLAGS.eval_every)))
+                    es_l.append(np.exp(es_loss / (FLAGS.eval_every)))
                     print '(Batch', str(counter) + ')', \
                         'English Training Perplexity:', np.exp(loss / (FLAGS.eval_every)), \
                         'Took', time.time() - start_time, 'seconds!'
@@ -123,14 +122,10 @@ def main(_):
             checkpoint_path = os.path.join(FLAGS.log_dir, 'model.ckpt')
             saver.save(sess, checkpoint_path, counter)
 
-        print 'English:'
-        print "\n".join(map(str, en_l))
-        print 'French:'
-        print "\n".join(map(str, fr_l))
-        print 'Spanish:'
-        print "\n".join(map(str, es_l))
-        print 'Test:'
-        print test_losses
+        print 'English:', en_l
+        print 'French:', fr_l
+        print 'Spanish:', es_l
+        print 'Test:', test_losses
 
 if __name__ == "__main__":
     tf.app.run()
