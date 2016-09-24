@@ -1,15 +1,15 @@
 """
 train.py
 
-Core training file for the Deep-Q Network Language Model with variable action space (DRNN).
+Core training file for the Deep-Q Network Language model with fixed action space.
 """
-from model.drnn_langmod import DRNNLangmod
 import tensorflow as tf
 
 FLAGS = tf.app.flags.FLAGS
 tf.flags.DEFINE_integer('vocabulary_size', 10000, "Size of the language vocabulary.")
 tf.flags.DEFINE_integer('embedding_size', 100, "Size of intermediate embeddings.")
 tf.flags.DEFINE_integer('hidden_size', 1000, "Size of state encoding network hidden layer.")
+tf.flags.DEFINE_integer('max_seq_size', 25, "Maximum sequence size.")
 
 
 def main(_):
@@ -23,7 +23,7 @@ def main(_):
     with tf.Session() as sess:
         # Instantiate Network
         print 'Building Network!'
-        drnn = DRNNLangmod(FLAGS.vocabulary_size, FLAGS.embedding_size, FLAGS.hidden_size)
+        rlangmod = RLangmod(FLAGS.vocabulary_size, FLAGS.embedding_size, FLAGS.hidden_size)
 
         # Create a saver.
         saver = tf.train.Saver(tf.all_variables())

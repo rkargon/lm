@@ -1,17 +1,17 @@
 """
-rl_langmod.py
+drnn_langmod.py
 
-Core model definition file for a Deep-Q Network Language Model. The state-space input consists of
-a bag-of-words context vector, and the action space input consists of a hot-encoded vector
-corresponding to the target word (word following the context).
+Core model definition file for a Deep-Q Network Language Model with a variable action space.
+The state-space input consists of a bag-of-words context vector, and the action space input consists
+of a hot-encoded vector corresponding to the target word (word following the context).
 """
 import tensorflow as tf
 
 
-class RLangmod():
+class DRNNLangmod():
     def __init__(self, vocab_size, embedding_size, hidden_size):
         """
-        Instantiate the RLangmod model, with the necessary parameters.
+        Instantiate the DRNNLangmod model, with the necessary parameters.
 
         :param vocab_size: Size of the state/action space vocabulary (for bag-of-words vectors).
         :param embedding_size: Size of intermediate state/action embeddings.
