@@ -3,6 +3,7 @@ train.py
 
 Core training file for the Deep-Q Network Language model with fixed action space.
 """
+from model.rl_langmod import RLangmod
 import tensorflow as tf
 
 FLAGS = tf.app.flags.FLAGS
