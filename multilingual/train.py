@@ -21,7 +21,7 @@ tf.app.flags.DEFINE_string('vocab_dir', 'data/vocab/', 'Path to vocabularies.')
 tf.app.flags.DEFINE_string('log_dir', 'data/log/', 'Path to log directory.')
 
 tf.app.flags.DEFINE_integer('vocab_size', 40000, 'Size of the vocabularies.')
-tf.app.flags.DEFINE_integer('train_size', 500000, 'Number of training examples.')
+tf.app.flags.DEFINE_integer('train_size', 1000000, 'Number of training examples.')
 tf.app.flags.DEFINE_integer('val_size', 50000, 'Number of validation examples.')
 tf.app.flags.DEFINE_integer('test_size', 100000, 'Number of test examples.')
 
@@ -42,6 +42,9 @@ def main(_):
     """
     Main training function, loads and vectorizes data, then runs the training process.
     """
+    for lang_id in LANGUAGES:
+        read(lang_id, SRC_FILES[lang_id], FLAGS.vocab_size, FLAGS.window_size, FLAGS.train_size,
+             FLAGS.val_size, FLAGS.test_size)
     with tf.Session() as sess:
         # Instantiate Network
         print "Building Network"

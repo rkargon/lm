@@ -46,9 +46,8 @@ def read(lang_id, src, vocab_size, window_size, num_train, num_val, num_test):
     vocab, _ = init_vocab(lang_id, vocab_size)
 
     train_x, train_y = [], []
-    rolling_window = window_size + 1
     for ptr in range(num_train):
-        start, end = ptr * rolling_window, (ptr * rolling_window) + window_size
+        start, end = ptr, ptr + window_size
         train_x.append(map(lambda x: vocab.get(x, UNK_ID), all_words[start:end]))
         train_y.append(vocab.get(all_words[end], UNK_ID))
     train_x, train_y = np.array(train_x), np.array(train_y)
@@ -59,7 +58,7 @@ def read(lang_id, src, vocab_size, window_size, num_train, num_val, num_test):
 
     val_x, val_y = [], []
     for ptr in range(num_train, num_train + num_val):
-        start, end = ptr * rolling_window, (ptr * rolling_window) + window_size
+        start, end = ptr, ptr + window_size
         val_x.append(map(lambda x: vocab.get(x, UNK_ID), all_words[start:end]))
         val_y.append(vocab.get(all_words[end], UNK_ID))
     val_x, val_y = np.array(val_x), np.array(val_y)
@@ -70,7 +69,7 @@ def read(lang_id, src, vocab_size, window_size, num_train, num_val, num_test):
 
     test_x, test_y = [], []
     for ptr in range(num_train + num_val, num_train + num_val + num_test):
-        start, end = ptr * rolling_window, (ptr * rolling_window) + window_size
+        start, end = ptr, ptr + window_size
         test_x.append(map(lambda x: vocab.get(x, UNK_ID), all_words[start:end]))
         test_y.append(vocab.get(all_words[end], UNK_ID))
     test_x, test_y = np.array(test_x), np.array(test_y)
