@@ -159,7 +159,7 @@ class LM:
         return train_ops
 
 
-class LM_RRN:
+class LM_RNN:
     def __init__(self, languages, embedding_size, unroll_steps, gru_size, hidden_size, vocab_sizes,
                  learning_rate):
         """
@@ -187,7 +187,7 @@ class LM_RRN:
         # Input is a single word for each training step  (batch_size x unroll_steps)
         self.inputs = {lang_id: tf.placeholder(tf.int64, [None, self.unroll_steps]) for lang_id in self.languages}
         # Output is the word that follows the input word, for each training step (batch_size * unroll_steps)
-        self.outputs = {lang_id: tf.placeholder(tf.int64, [None, self.unroll_steps]) for lang_id in self.languages}
+        self.outputs = {lang_id: tf.placeholder(tf.int64, [None]) for lang_id in self.languages}
 
         # Dropout Placeholder
         self.dropout_prob = tf.placeholder(tf.float32)
@@ -199,7 +199,6 @@ class LM_RRN:
         # List model weight variables for clarity
         self.embeddings = None
         self.gru_cell = None
-        self.gru_start_states = None
         self.hidden_relu = self.hidden_relu_bias = None
         self.hidden_linear = self.hidden_linear_bias = None
         self.decoders = None
@@ -208,7 +207,7 @@ class LM_RRN:
         self.instantiate_weights()
 
         # build inference graphs
-        self.logits, self.intermediate_embeddings = self.inference()
+        self.gru_states, self.intermediate_embeddings, self.logits = self.inference()
 
         # build loss graph
         self.loss_vals = self.loss()
@@ -240,8 +239,9 @@ class LM_RRN:
                          self.languages}
 
     def inference(self):
-        logit_paths = {lang_id: {lang_id2: None for lang_id2 in self.languages} for lang_id in self.languages}
+        gru_states = {lang_id: None for lang_id in self.languages}
         intermediate_embeddings = {lang_id: None for lang_id in self.languages}
+        logit_paths = {lang_id: {lang_id2: None for lang_id2 in self.languages} for lang_id in self.languages}
 
         for lang_id in self.languages:
             with tf.variable_scope('{0}_encoder_scope'.format(lang_id)):
@@ -254,6 +254,7 @@ class LM_RRN:
                 # Pass embedded inputs through GRU cell, extract state which represents the whole input context
                 _, gru_state = tf.nn.dynamic_rnn(cell=self.gru_cell, inputs=embedded_inputs_dropout, time_major=False,
                                                  initial_state=self.gru_start_states[lang_id])
+                gru_states[lang_id] = gru_state
 
                 # Pass context through shared RELU layer
                 shared_relu = tf.nn.relu(tf.matmul(gru_state, self.hidden_relu) + self.hidden_relu_bias)
@@ -273,7 +274,7 @@ class LM_RRN:
                 decode_logits = tf.matmul(encoding, decoder) + decoder_bias
                 logit_paths[encoding_lang][decoding_lang] = decode_logits
 
-        return logit_paths, intermediate_embeddings
+        return gru_states, intermediate_embeddings, logit_paths
 
     def loss(self):
         """
