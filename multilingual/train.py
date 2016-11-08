@@ -6,12 +6,14 @@ the goal of predicting the next word given a fixed sequence window.
 
 Data Credit: http://statmt.org/wmt13/translation-task.html#download
 """
-from model.lm import LM, LM_RNN
-from preprocessor.reader import load_test_data, load_train_data, read
-import numpy as np
 import os
-import tensorflow as tf
 import time
+
+import numpy as np
+import tensorflow as tf
+
+from model.lm import LM_RNN
+from preprocessor.reader import load_test_data, load_train_data, read
 
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string('train_dir', 'data/train/', 'Path to training files.')
@@ -71,19 +73,19 @@ def main(_):
 
         # TODO test data for every language?
         train_data = {lang_id: load_train_data(lang_id) for lang_id in LANGUAGES}
-        test_data = load_test_data('en')
+        test_data = {'en': load_test_data('en')}
         loss_data = {lang_id: [] for lang_id in LANGUAGES}
         test_losses = []
 
         # Run n epochs of French/English/Spanish With Interleaving Batches
         print 'Starting Training'
         for i in range(FLAGS.num_epochs):
-            run_network(sess, langmod, train_data, loss_data, train=True, eval=True)
+            run_network(sess, langmod, data=train_data, perplexity_log=loss_data, train=True, eval_perplexity=True)
 
             # Evaluate on Test Data
-            test_perplexity = run_network(sess, langmod, test_data, None, languages=["en"])
+            test_perplexity = run_network(sess, langmod, data=test_data, perplexity_log=None, languages=["en"])
             test_losses.append(test_perplexity["en"])
-            print 'Epoch %d/%d, Test Perplexity: %f' % (i, FLAGS.num_epochs, test_perplexity["en"])
+            print 'Epoch %d/%d, Test Perplexity: %f' % (i + 1, FLAGS.num_epochs, test_perplexity["en"])
 
             # Save model
             checkpoint_path = os.path.join(FLAGS.log_dir, 'model.ckpt')
@@ -95,7 +97,7 @@ def main(_):
 
 
 def run_network(sess, langmod, data, perplexity_log=None, languages=LANGUAGES, batch_size=FLAGS.batch_size, train=False,
-                eval=False):
+                eval_perplexity=False):
     """
     Runs a neural network for one epoch of the given data set. This can be used either for training or for testing.
     The perplexity is also returned, and intermediate perplexity values can be stored in a given list if necessary.
@@ -106,9 +108,10 @@ def run_network(sess, langmod, data, perplexity_log=None, languages=LANGUAGES, b
     will be appended. None by default
     :param languages: A list of language id's on which to run the network. By default uses global variable LANGUAGES
     :param batch_size: The batch size with which to pass data to the network.
-    :param train: Whether or not to run a training step for each batch. False by default.
-    :param eval: Whether to periodically output the perplexity every eval_size batches. If true, the returned value
-    will also be the perplexity of the last eval_size batches.
+    :param train: Whether or not to run a training step for each batch. False by default. If True, model parameters
+    are updated, and dropout is used during training.
+    :param eval_perplexity: Whether to periodically output the perplexity every eval_size batches. If true,
+    the returned value will also be the perplexity of the last eval_size batches.
     :return: The perplexity of the network on the data, as a dictionary {lang_id: perplexity}
     """
     start_time = time.time()
@@ -116,7 +119,7 @@ def run_network(sess, langmod, data, perplexity_log=None, languages=LANGUAGES, b
     total_losses = {lang_id: 0.0 for lang_id in languages}
     gru_states = {lang_id: sess.run(langmod.gru_cell.zero_state(batch_size=batch_size, dtype=tf.float32)) for
                   lang_id in languages}
-    for start in range(0, FLAGS.train_size, batch_size):
+    for start in range(0, len(data[languages[0]][0]), batch_size):
         end = start + batch_size
         counter += 1
         for lang_id in languages:
@@ -124,16 +127,17 @@ def run_network(sess, langmod, data, perplexity_log=None, languages=LANGUAGES, b
             outputs = data[lang_id][1][start:end]
             feed_dict = {langmod.inputs[lang_id]: inputs,
                          langmod.outputs[lang_id]: outputs,
-                         langmod.dropout_prob: FLAGS.dropout_prob,
+                         langmod.dropout_prob: 1.0,
                          langmod.gru_start_states[lang_id]: gru_states[lang_id]}
             batch_lang_loss = sess.run(langmod.loss_vals[lang_id][lang_id], feed_dict=feed_dict)
             if train:
+                feed_dict[langmod.dropout_prob] = FLAGS.dropout_prob
                 _ = sess.run(langmod.train_ops[lang_id][lang_id], feed_dict=feed_dict)
             gru_states[lang_id] = sess.run(langmod.gru_states[lang_id], feed_dict=feed_dict)
             total_losses[lang_id] += batch_lang_loss
 
         # Print evaluation statistics
-        if eval and counter % FLAGS.eval_every == 0:
+        if eval_perplexity and counter % FLAGS.eval_every == 0:
             for lang_id in languages:
                 perplexity = np.exp(total_losses[lang_id] / FLAGS.eval_every)
                 if perplexity_log is not None:

@@ -223,7 +223,8 @@ class LM_RNN:
                                                 "%s_embedding" % lang_id) for lang_id in self.languages}
 
         # GRU cell used for each input language
-        self.gru_cell = tf.nn.rnn_cell.GRUCell(num_units=self.gru_size)
+        gru = tf.nn.rnn_cell.GRUCell(num_units=self.gru_size)
+        self.gru_cell = tf.nn.rnn_cell.DropoutWrapper(gru, output_keep_prob=self.dropout_prob)
 
         self.hidden_relu, self.hidden_relu_bias = (init_weight([self.hidden, self.hidden],
                                                                "hidden_relu"),
